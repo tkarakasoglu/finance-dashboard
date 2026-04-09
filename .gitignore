@@ -1,0 +1,25 @@
+.vercel
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+
+# Build outputs
+bin/
+dist/
+build/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Env
+.env
+!.env.example
