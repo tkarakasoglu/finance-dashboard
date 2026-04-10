@@ -18,6 +18,10 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /symbol-search", SymbolSearch)
 	mux.HandleFunc("GET /api/symbol-search", SymbolSearch)
 
+	// Exchange positions (used by auto charts mode).
+	mux.HandleFunc("POST /positions", Positions)
+	mux.HandleFunc("POST /api/positions", Positions)
+
 	mux.HandleFunc("GET /", Index)
 }
 
@@ -142,4 +146,3 @@ func Symbols(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
 }
-
