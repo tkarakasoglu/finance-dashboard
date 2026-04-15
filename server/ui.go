@@ -513,11 +513,16 @@ const indexHTML = `<!doctype html>
       }
       .auto-summary-bar[data-visible="true"] {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 12px;
         align-items: stretch;
         /* Clear separation from chart grid below (in addition to flex gap). */
         margin-bottom: 16px;
+      }
+      @media (max-width: 1100px) {
+        .auto-summary-bar[data-visible="true"] {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
       }
       @media (max-width: 900px) {
         .auto-summary-bar[data-visible="true"] {
@@ -3157,10 +3162,11 @@ const indexHTML = `<!doctype html>
           const meta = Array.isArray(tab.autoPositionMeta) ? tab.autoPositionMeta : [];
           let totalPnL = 0;
           let hasPnL = false;
-          let totalAbsSize = 0;
-          let hasSize = false;
           let counted = 0;
-          let pnlPctDenomSum = 0;
+          let totalMargin = 0;
+          let hasMargin = false;
+          let totalNotional = 0;
+          let hasNotional = false;
           meta.forEach((m) => {
             if (!m || typeof m !== "object") return;
             counted++;
@@ -3169,13 +3175,17 @@ const indexHTML = `<!doctype html>
               totalPnL += pnl;
               hasPnL = true;
             }
-            const sz = Number.parseFloat(String(m.size || "").replace(/,/g, ""));
-            if (Number.isFinite(sz)) {
-              totalAbsSize += Math.abs(sz);
-              hasSize = true;
+            const sz = Math.abs(parseMetaNum(m.size));
+            const avg = parseMetaNum(m.avgPrice);
+            if (Number.isFinite(sz) && Number.isFinite(avg) && sz > 0 && avg > 0) {
+              totalNotional += sz * avg;
+              hasNotional = true;
             }
             const d = estimatePnlPercentDenominator(m);
-            if (d != null && d > 0) pnlPctDenomSum += d;
+            if (d != null && d > 0) {
+              totalMargin += d;
+              hasMargin = true;
+            }
           });
           if (counted === 0) {
             counted = (tab.symbols || []).filter((s) => String(s || "").trim()).length;
@@ -3218,28 +3228,36 @@ const indexHTML = `<!doctype html>
 
           addCard("Exchange", exLabel);
           addCard("Positions", String(counted));
-          addCard("Σ |Size|", hasSize ? formatNumDisplay(String(totalAbsSize)) : "—");
+          addCard("Total margin", hasMargin ? formatNumDisplay(String(totalMargin)) : "—");
+          addCard("Notional", hasNotional ? formatNumDisplay(String(totalNotional)) : "—");
+          if (hasMargin) {
+            const bal = totalMargin + (hasPnL ? totalPnL : 0);
+            addCard("Total Balance", formatNumDisplay(String(bal)));
+          } else {
+            addCard("Total Balance", "—");
+          }
+
           if (hasPnL) {
             const pnlClass = totalPnL >= 0 ? "pnl-pos" : "pnl-neg";
             const sign = totalPnL >= 0 ? "+" : "";
             const mainAmt = sign + formatPnlDisplay(String(totalPnL));
             let totalPct = null;
-            if (pnlPctDenomSum > 0) {
-              const tp = (totalPnL / pnlPctDenomSum) * 100;
+            if (hasMargin && totalMargin > 0) {
+              const tp = (totalPnL / totalMargin) * 100;
               if (Number.isFinite(tp)) totalPct = tp;
             }
             if (totalPct != null) {
-              addCard("Total uPnL", "", {
+              addCard("Total UPNL", "", {
                 pnl: true,
                 pnlTone: pnlClass,
                 pnlValClass: pnlClass,
                 pnlParts: { main: mainAmt, pct: " (" + formatPnlPercentDisplay(totalPct) + ")" }
               });
             } else {
-              addCard("Total uPnL", mainAmt, { pnl: true, pnlTone: pnlClass, pnlValClass: pnlClass });
+              addCard("Total UPNL", mainAmt, { pnl: true, pnlTone: pnlClass, pnlValClass: pnlClass });
             }
           } else {
-            addCard("Total uPnL", "—");
+            addCard("Total UPNL", "—");
           }
         }
 
